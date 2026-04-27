@@ -677,31 +677,46 @@ function assinaturaVazia() {
 }
 
 async function enviarDadosFinais() {
-    const btn = document.querySelector(".btn-warning") || document.querySelector(".btn-success");
-    const areaAssinatura = document.getElementById("areaAssinatura");
+    // 1. CAPTURA O BOTÃO (usando seletores mais amplos para não falhar)
+    const btn = document.querySelector(".btn-warning") || 
+                document.querySelector(".btn-success") || 
+                document.querySelector("button[onclick*='enviarDadosFinais']");
     
-    // --- ESCONDE O BOTÃO E A ASSINATURA IMEDIATAMENTE ---
-    btn.style.display = "none"; 
-    if (areaAssinatura) areaAssinatura.style.display = "none";
+    const areaAssinatura = document.getElementById("areaAssinatura");
 
-    // Cria o aviso de ênfase que você pediu
-    const statusTemp = document.createElement("div");
-    statusTemp.id = "statusTemp";
-    statusTemp.style.textAlign = "center";
-    statusTemp.style.padding = "20px";
-    statusTemp.innerHTML = `
-        <h4 style="font-weight: bold;">⏳ Enviando dados, aguarde...</h4>
-        <p>Por favor, não feche a página.</p>
-    `;
-    btn.parentNode.insertBefore(statusTemp, btn);
+    // --- AÇÃO CRÍTICA: ESCONDE O BOTÃO IMEDIATAMENTE ---
+    if (btn) {
+        btn.style.setProperty("display", "none", "important"); // O "important" força o sumiço
+    }
+    
+    // Também esconde a área da assinatura
+    if (areaAssinatura) {
+        areaAssinatura.style.setProperty("display", "none", "important");
+    }
+
+    // 2. CRIA O AVISO DE STATUS (Substitui o que sumiu)
+    let statusTemp = document.getElementById("statusTemp");
+    if (!statusTemp) {
+        statusTemp = document.createElement("div");
+        statusTemp.id = "statusTemp";
+        statusTemp.style.cssText = "text-align:center; padding:20px; background:#f8f9fa; border-radius:10px; border:1px solid #dee2e6; margin: 10px 0;";
+        statusTemp.innerHTML = `
+            <strong style="font-size: 1.2rem; display: block;">⏳ Enviando dados, aguarde...</strong>
+            <span style="color: #666;">Por favor, não feche a página.</span>
+        `;
+        // Insere o aviso onde o botão estava
+        btn.parentNode.insertBefore(statusTemp, btn);
+    }
 
     try {
+        const romaneio = document.getElementById("romaneio").value;
+        const usuario = document.getElementById("usuario").value;
         const canvasParaEnvio = document.getElementById('canvasAssinatura');
         const assinaturaBase64 = canvasParaEnvio.toDataURL("image/png");
 
         const payload = {
-            romaneio: document.getElementById("romaneio").value,
-            usuario: document.getElementById("usuario").value,
+            romaneio: romaneio,
+            usuario: usuario,
             codigos: typeof codigosLidos !== 'undefined' ? codigosLidos : [],
             geo: window.lastGeo || "0,0",
             assinatura: assinaturaBase64,
@@ -719,7 +734,6 @@ async function enviarDadosFinais() {
         const result = await response.json();
 
         if (result.success) {
-            // Lógica do comentário opcional... (omitida para brevidade)
             alert("✅ Lote finalizado com sucesso!");
             location.reload(); 
         } else {
@@ -727,16 +741,21 @@ async function enviarDadosFinais() {
         }
 
     } catch (e) {
-        // --- SE DER ERRO, O BOTÃO VOLTA A APARECER ---
-        if (document.getElementById("statusTemp")) document.getElementById("statusTemp").remove();
-        btn.style.display = "block"; // Botão volta a ficar visível
-        btn.style.width = "100%";
-        btn.innerText = "✅ Confirmar Assinatura e Enviar";
-        if (areaAssinatura) areaAssinatura.style.display = "block";
+        console.error("Erro:", e);
+        alert("❌ Erro no envio. O botão será restaurado para nova tentativa.");
         
-        alert("❌ Erro no envio. Tente novamente.");
+        // REVERSÃO: Se der erro, o botão volta
+        if (statusTemp) statusTemp.remove();
+        if (btn) {
+            btn.style.setProperty("display", "block", "important");
+            btn.style.width = "100%";
+        }
+        if (areaAssinatura) {
+            areaAssinatura.style.setProperty("display", "block", "important");
+        }
     }
 }
+
 
 async function finalizarLote() {
     const usuarioField = document.getElementById("usuario");
