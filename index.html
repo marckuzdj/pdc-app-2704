@@ -685,16 +685,21 @@ async function enviarDadosFinais() {
     const canvasParaEnvio = document.getElementById('canvasAssinatura');
     const assinaturaBase64 = canvasParaEnvio.toDataURL("image/png");
 
-    // --- AÇÃO: ESCONDE TUDO PARA EVITAR CLIQUES ---
-    btn.style.display = "none"; // Esconde o botão completamente
-    if (areaAssinatura) {
-        areaAssinatura.style.display = "none"; // Esconde a assinatura
-    }
+    // 1. ESCONDE O BOTÃO E A ASSINATURA
+    btn.style.display = "none";
+    if (areaAssinatura) areaAssinatura.style.display = "none";
 
-    // Opcional: Criar um aviso temporário para o usuário não achar que travou
+    // 2. CRIA O AVISO COM ÊNFASE (ESTILO BOOTSTRAP)
     const statusTemp = document.createElement("div");
     statusTemp.id = "statusTemp";
-    statusTemp.innerHTML = "<h4 style='text-align:center'>⏳ Enviando dados, aguarde...</h4>";
+    statusTemp.className = "alert alert-info w-100 text-center shadow-sm"; // Alerta azul, largo e com sombra
+    statusTemp.style.padding = "20px";
+    statusTemp.innerHTML = `
+        <div class="spinner-border text-primary" role="status"></div>
+        <br><br>
+        <strong style="font-size: 1.2rem;">⏳ Enviando dados, aguarde...</strong>
+        <p class="mb-0">Por favor, não feche a página.</p>
+    `;
     btn.parentNode.insertBefore(statusTemp, btn);
 
     try {
@@ -718,9 +723,11 @@ async function enviarDadosFinais() {
         const result = await response.json();
 
         if (result.success) {
+            // Lógica de comentário opcional...
             if (!window.confirmObs || window.confirmObs.trim() === "") {
                 const querComentario = confirm("✅ Dados enviados! Deseja registrar comentário?");
                 if (querComentario) {
+                    statusTemp.innerHTML = "<strong>⏳ Gravando comentário...</strong>";
                     const obsExtra = prompt("Descreva a observação:");
                     if (obsExtra !== null && obsExtra.trim() !== "") {
                         await fetch(urlSheets, {
@@ -740,24 +747,20 @@ async function enviarDadosFinais() {
             alert("✅ Romaneio finalizado com sucesso!");
             location.reload(); 
         } else {
-            throw new Error(result.error || "Erro no servidor");
+            throw new Error(result.error);
         }
+
     } catch (e) {
-        console.error("Erro no Envio:", e);
+        console.error("Erro:", e);
         alert("❌ Erro no envio. Tente novamente.");
         
-        // --- REVERSÃO: Volta o botão e a assinatura se der erro ---
+        // REVERSÃO: Remove aviso e volta o botão
         if (document.getElementById("statusTemp")) document.getElementById("statusTemp").remove();
-        btn.style.display = "block"; 
-        btn.innerText = "✅ Confirmar Assinatura e Enviar";
-        if (areaAssinatura) {
-            areaAssinatura.style.display = "block";
-        }
+        btn.style.display = "block";
+        btn.style.width = "100%"; 
+        if (areaAssinatura) areaAssinatura.style.display = "block";
     }
 }
-
-
-
 
 async function finalizarLote() {
     const usuarioField = document.getElementById("usuario");
