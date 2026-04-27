@@ -678,21 +678,34 @@ function assinaturaVazia() {
 
 async function enviarDadosFinais() {
     const btn = document.querySelector(".btn-warning") || document.querySelector(".btn-success");
+    const romaneio = document.getElementById("romaneio").value;
+    const usuario = document.getElementById("usuario").value;
     const areaAssinatura = document.getElementById("areaAssinatura");
 
-    // --- O PULO DO GATO: ESCONDE O BOTÃO NA HORA ---
-    if (btn) btn.style.display = "none"; 
-    if (areaAssinatura) areaAssinatura.style.display = "none";
+    // 1. CAPTURA A ASSINATURA
+    const canvasParaEnvio = document.getElementById('canvasAssinatura');
+    const assinaturaBase64 = canvasParaEnvio.toDataURL("image/png");
 
-    // Mostra apenas o seu texto de status que já estava no HTML ou insere via JS
-    console.log("Botão escondido, iniciando envio...");
+    // 2. INTERFACE: TORNA O BOTÃO INVISÍVEL (ESTILO BLOCK)
+    // Usamos 'important' para garantir que nenhuma classe CSS o mantenha visível
+    if (btn) btn.style.setProperty("display", "none", "important");
+    
+    if (areaAssinatura) {
+        areaAssinatura.style.setProperty("display", "none", "important");
+    }
+
+    // Cria um aviso de ênfase no lugar do botão
+    const avisoStatus = document.createElement("div");
+    avisoStatus.id = "avisoStatusEnvio";
+    avisoStatus.innerHTML = `
+        <div style="text-align:center; padding:20px; background:#fff3cd; border:1px solid #ffeeba; border-radius:8px;">
+            <h4 style="margin:0; color:#856404;">⏳ Enviando dados, aguarde...</h4>
+            <small style="color:#856404;">Por favor, não feche a página.</small>
+        </div>
+    `;
+    btn.parentNode.insertBefore(avisoStatus, btn);
 
     try {
-        const romaneio = document.getElementById("romaneio").value;
-        const usuario = document.getElementById("usuario").value;
-        const canvasParaEnvio = document.getElementById('canvasAssinatura');
-        const assinaturaBase64 = canvasParaEnvio.toDataURL("image/png");
-
         const payload = {
             romaneio: romaneio,
             usuario: usuario,
@@ -703,6 +716,7 @@ async function enviarDadosFinais() {
             obs_final: window.confirmObs || ""
         };
 
+        // 3. ENVIO PRINCIPAL
         const response = await fetch(urlSheets, {
             method: 'POST',
             mode: 'cors',
@@ -713,21 +727,54 @@ async function enviarDadosFinais() {
         const result = await response.json();
 
         if (result.success) {
-            alert("✅ Lote finalizado com sucesso!");
+            // 4. LÓGICA DO COMENTÁRIO OPCIONAL
+            if (!window.confirmObs || window.confirmObs.trim() === "") {
+                const querComentario = confirm("✅ Dados enviados! Deseja registrar comentário ou ocorrencia?");
+                if (querComentario) {
+                    const obsExtra = prompt("Descreva a observação:");
+                    if (obsExtra !== null && obsExtra.trim() !== "") {
+                        avisoStatus.innerHTML = "<h4 style='text-align:center;'>⏳ Gravando comentário...</h4>";
+                        await fetch(urlSheets, {
+                            method: 'POST',
+                            mode: 'cors',
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                            body: JSON.stringify({
+                                romaneio: romaneio,
+                                usuario: usuario,
+                                obs_final: obsExtra,
+                                geo: window.lastGeo
+                            })
+                        });
+                    }
+                }
+            }
+
+            alert("✅ Romaneio finalizado com sucesso!");
             location.reload(); 
+
         } else {
-            throw new Error("Erro");
+            throw new Error(result.error || "Erro retornado pelo servidor");
         }
 
     } catch (e) {
-        alert("❌ Erro no envio. O botão aparecerá novamente.");
-        // SE DER ERRO, O BOTÃO VOLTA
-        if (btn) btn.style.display = "block";
-        if (areaAssinatura) areaAssinatura.style.display = "block";
+        console.error("Erro no Envio:", e);
+        alert("❌ Erro no envio. O botão será restaurado para tentar novamente.");
+        
+        // REVERSÃO: Remove aviso e volta o botão se der erro
+        if (document.getElementById("avisoStatusEnvio")) {
+            document.getElementById("avisoStatusEnvio").remove();
+        }
+        if (btn) {
+            btn.style.setProperty("display", "block", "important");
+            btn.style.width = "100%"; // Mantém como block button
+            btn.disabled = false;
+            btn.innerText = "✅ Confirmar Assinatura e Enviar";
+        }
+        if (areaAssinatura) {
+            areaAssinatura.style.setProperty("display", "block", "important");
+        }
     }
 }
-
-
 
 async function finalizarLote() {
     const usuarioField = document.getElementById("usuario");
@@ -739,14 +786,12 @@ async function finalizarLote() {
     const usuario = usuarioField.value.trim();
     const romaneio = romaneioField.value;
 
-    // Validação básica de campos
     if (!usuario || !romaneio) {
         alert("⚠️ Identifique-se e selecione o Romaneio!");
         return;
     }
 
     // --- FASE 2: ENVIO DEFINITIVO ---
-    // Se a área de assinatura já estiver visível, significa que a validação já passou
     if (areaAssinatura.style.display === "block") {
         if (assinaturaVazia()) {
             alert("⚠️ Por favor, assine antes de finalizar!");
@@ -757,12 +802,10 @@ async function finalizarLote() {
     }
 
     // --- FASE 1: VALIDAÇÃO E PREPARAÇÃO ---
-
-    // 1. PROMPTS DE OBSERVAÇÃO / DIVERGÊNCIA
     let observacaoFinal = "";
     if (!confirm(`✅ Tudo OK! Confirmar total de ${totalVolumes} volumes?`)) {
         const obs = prompt("Informe o motivo da divergência:");
-        if (obs === null) return; // Cancelou o prompt
+        if (obs === null) return;
         observacaoFinal = `${usuario}: ${obs || "Divergência de volumes"}`;
     }
     window.confirmObs = observacaoFinal; 
@@ -771,7 +814,6 @@ async function finalizarLote() {
     btn.innerText = "🔍 Validando Pendências...";
 
     try {
-        // 2. VALIDAÇÃO DE PENDÊNCIAS NO SERVIDOR
         const response = await fetch(`${urlSheets}?action=verificarPendencias&romaneio=${romaneio}`);
         const check = await response.json();
 
@@ -782,7 +824,6 @@ async function finalizarLote() {
             return;
         }
 
-        // 3. OBTENÇÃO DE GPS
         btn.innerText = "📍 Obtendo Localização...";
         const pos = await new Promise((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, { 
@@ -792,17 +833,15 @@ async function finalizarLote() {
         });
         window.lastGeo = `${pos.coords.latitude}, ${pos.coords.longitude}`;
 
-        // 4. FECHAR CÂMERA (Se estiver aberta)
         if (typeof html5QrCode !== 'undefined' && html5QrCode.isScanning) {
             await html5QrCode.stop().catch(() => {});
             document.getElementById("reader").style.display = "none";
         }
 
-        // ... (resto do código acima igual)
-
-        // 5. LIBERAR PARA ASSINATURA
-// ... dentro da finalizarLote (Passo 5)
-        btn.style.display = "block"; // Garante que ele apareça aqui
+        // 5. LIBERAR PARA ASSINATURA (TRANSFORMA EM BLOCK BUTTON)
+        btn.disabled = false;
+        btn.style.setProperty("display", "block", "important");
+        btn.style.width = "100%"; // Garante largura total
         btn.innerText = "✅ Confirmar Assinatura e Enviar";
         btn.classList.replace("btn-success", "btn-warning");
         
@@ -816,6 +855,7 @@ async function finalizarLote() {
         btn.innerText = "Finalizar Lote";
     }
 }
+
 
 
 </script>
