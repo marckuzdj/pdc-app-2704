@@ -677,36 +677,15 @@ function assinaturaVazia() {
 }
 
 async function enviarDadosFinais() {
-    // 1. CAPTURA O BOTÃO (usando seletores mais amplos para não falhar)
-    const btn = document.querySelector(".btn-warning") || 
-                document.querySelector(".btn-success") || 
-                document.querySelector("button[onclick*='enviarDadosFinais']");
-    
+    const btn = document.querySelector(".btn-warning") || document.querySelector(".btn-success");
     const areaAssinatura = document.getElementById("areaAssinatura");
 
-    // --- AÇÃO CRÍTICA: ESCONDE O BOTÃO IMEDIATAMENTE ---
-    if (btn) {
-        btn.style.setProperty("display", "none", "important"); // O "important" força o sumiço
-    }
-    
-    // Também esconde a área da assinatura
-    if (areaAssinatura) {
-        areaAssinatura.style.setProperty("display", "none", "important");
-    }
+    // --- O PULO DO GATO: ESCONDE O BOTÃO NA HORA ---
+    if (btn) btn.style.display = "none"; 
+    if (areaAssinatura) areaAssinatura.style.display = "none";
 
-    // 2. CRIA O AVISO DE STATUS (Substitui o que sumiu)
-    let statusTemp = document.getElementById("statusTemp");
-    if (!statusTemp) {
-        statusTemp = document.createElement("div");
-        statusTemp.id = "statusTemp";
-        statusTemp.style.cssText = "text-align:center; padding:20px; background:#f8f9fa; border-radius:10px; border:1px solid #dee2e6; margin: 10px 0;";
-        statusTemp.innerHTML = `
-            <strong style="font-size: 1.2rem; display: block;">⏳ Enviando dados, aguarde...</strong>
-            <span style="color: #666;">Por favor, não feche a página.</span>
-        `;
-        // Insere o aviso onde o botão estava
-        btn.parentNode.insertBefore(statusTemp, btn);
-    }
+    // Mostra apenas o seu texto de status que já estava no HTML ou insere via JS
+    console.log("Botão escondido, iniciando envio...");
 
     try {
         const romaneio = document.getElementById("romaneio").value;
@@ -737,24 +716,17 @@ async function enviarDadosFinais() {
             alert("✅ Lote finalizado com sucesso!");
             location.reload(); 
         } else {
-            throw new Error("Erro no servidor");
+            throw new Error("Erro");
         }
 
     } catch (e) {
-        console.error("Erro:", e);
-        alert("❌ Erro no envio. O botão será restaurado para nova tentativa.");
-        
-        // REVERSÃO: Se der erro, o botão volta
-        if (statusTemp) statusTemp.remove();
-        if (btn) {
-            btn.style.setProperty("display", "block", "important");
-            btn.style.width = "100%";
-        }
-        if (areaAssinatura) {
-            areaAssinatura.style.setProperty("display", "block", "important");
-        }
+        alert("❌ Erro no envio. O botão aparecerá novamente.");
+        // SE DER ERRO, O BOTÃO VOLTA
+        if (btn) btn.style.display = "block";
+        if (areaAssinatura) areaAssinatura.style.display = "block";
     }
 }
+
 
 
 async function finalizarLote() {
@@ -829,9 +801,8 @@ async function finalizarLote() {
         // ... (resto do código acima igual)
 
         // 5. LIBERAR PARA ASSINATURA
-        btn.disabled = false;
-        btn.style.display = "block"; // Garante que esteja visível
-        btn.style.width = "100%";    // Transforma em Block Button manualmente
+// ... dentro da finalizarLote (Passo 5)
+        btn.style.display = "block"; // Garante que ele apareça aqui
         btn.innerText = "✅ Confirmar Assinatura e Enviar";
         btn.classList.replace("btn-success", "btn-warning");
         
