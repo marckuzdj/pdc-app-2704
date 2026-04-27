@@ -719,11 +719,11 @@ async function enviarDadosFinais() {
         if (result.success) {
             // 4. LÓGICA DO COMENTÁRIO OPCIONAL
             if (!window.confirmObs || window.confirmObs.trim() === "") {
-                const querComentario = confirm("✅ Dados enviados! Deseja registrar comentário ou ocorrencia?");
+                const querComentario = confirm("✅ Dados principais enviados! Deseja adicionar um comentário extra?");
                 if (querComentario) {
-                    const obsExtra = prompt("Descreva a observação:");
+                    const obsExtra = prompt("Descreva sua observação para a coluna OBS:");
                     if (obsExtra !== null && obsExtra.trim() !== "") {
-                        btn.innerText = "⏳ Registrando comentário...";
+                        btn.innerText = "⏳ Gravando comentário...";
                         // Botão continua disabled aqui
                         await fetch(urlSheets, {
                             method: 'POST',
@@ -740,7 +740,7 @@ async function enviarDadosFinais() {
                 }
             }
 
-            alert("✅ Romaneio finalizado com sucesso!");
+            alert("✅ Lote finalizado com sucesso!");
             location.reload(); 
 
         } else {
