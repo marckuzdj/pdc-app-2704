@@ -686,8 +686,9 @@ async function enviarDadosFinais() {
     const canvasParaEnvio = document.getElementById('canvasAssinatura');
     const assinaturaBase64 = canvasParaEnvio.toDataURL("image/png");
 
-    // 2. INTERFACE: BLOQUEIA BOTÃO, ESCONDE CAMPO E MOSTRA STATUS
-    btn.disabled = true;
+    // 2. INTERFACE: BLOQUEIA BOTÃO E MOSTRA STATUS
+    // Isso impede cliques extras e trava o estado visual
+    btn.disabled = true; 
     btn.innerText = "⏳ Enviando dados, por favor aguarde...";
     
     if (areaAssinatura) {
@@ -718,11 +719,12 @@ async function enviarDadosFinais() {
         if (result.success) {
             // 4. LÓGICA DO COMENTÁRIO OPCIONAL
             if (!window.confirmObs || window.confirmObs.trim() === "") {
-                const querComentario = confirm("✅ Dados principais enviados! Deseja adicionar um comentário extra?");
+                const querComentario = confirm("✅ Dados enviados! Deseja registrar comentário ou ocorrencia?");
                 if (querComentario) {
-                    const obsExtra = prompt("Descreva sua observação para a coluna OBS:");
+                    const obsExtra = prompt("Descreva a observação:");
                     if (obsExtra !== null && obsExtra.trim() !== "") {
-                        btn.innerText = "⏳ Gravando comentário...";
+                        btn.innerText = "⏳ Registrando comentário...";
+                        // Botão continua disabled aqui
                         await fetch(urlSheets, {
                             method: 'POST',
                             mode: 'cors',
@@ -738,18 +740,18 @@ async function enviarDadosFinais() {
                 }
             }
 
-            alert("✅ Lote finalizado com sucesso!");
+            alert("✅ Romaneio finalizado com sucesso!");
             location.reload(); 
 
         } else {
-            throw new Error(result.error || "Erro desconhecido");
+            throw new Error(result.error || "Erro retornado pelo servidor");
         }
 
     } catch (e) {
         console.error("Erro no Envio:", e);
-        alert("❌ Erro no envio. O campo de assinatura será reexibido para tentar novamente.");
+        alert("❌ Erro no envio. O botão será liberado para tentar novamente.");
         
-        // REEXIBE CASO DÊ ERRO PARA O USUÁRIO TENTAR DE NOVO
+        // REVERSÃO: Só volta o texto e libera o botão se houver erro
         btn.disabled = false;
         btn.innerText = "✅ Confirmar Assinatura e Enviar";
         if (areaAssinatura) {
@@ -757,6 +759,7 @@ async function enviarDadosFinais() {
         }
     }
 }
+
 
 
 async function finalizarLote() {
@@ -779,7 +782,7 @@ async function finalizarLote() {
     // Se a área de assinatura já estiver visível, significa que a validação já passou
     if (areaAssinatura.style.display === "block") {
         if (assinaturaVazia()) {
-            alert("⚠️ Por favor, assine antes de enviar!");
+            alert("⚠️ Por favor, assine antes de finalizar!");
             return;
         }
         await enviarDadosFinais();
