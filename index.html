@@ -682,18 +682,20 @@ async function enviarDadosFinais() {
     const usuario = document.getElementById("usuario").value;
     const areaAssinatura = document.getElementById("areaAssinatura");
 
-    // 1. CAPTURA A ASSINATURA
     const canvasParaEnvio = document.getElementById('canvasAssinatura');
     const assinaturaBase64 = canvasParaEnvio.toDataURL("image/png");
 
-    // 2. BLOQUEIO IMEDIATO PÓS-CLIQUE
-    btn.disabled = true; // Desativa o clique
-    btn.style.pointerEvents = "none"; // Garante bloqueio total do mouse
-    btn.innerText = "⏳ Enviando dados, por favor aguarde...";
-    
+    // --- AÇÃO: ESCONDE TUDO PARA EVITAR CLIQUES ---
+    btn.style.display = "none"; // Esconde o botão completamente
     if (areaAssinatura) {
-        areaAssinatura.style.display = "none";
+        areaAssinatura.style.display = "none"; // Esconde a assinatura
     }
+
+    // Opcional: Criar um aviso temporário para o usuário não achar que travou
+    const statusTemp = document.createElement("div");
+    statusTemp.id = "statusTemp";
+    statusTemp.innerHTML = "<h4 style='text-align:center'>⏳ Enviando dados, aguarde...</h4>";
+    btn.parentNode.insertBefore(statusTemp, btn);
 
     try {
         const payload = {
@@ -706,7 +708,6 @@ async function enviarDadosFinais() {
             obs_final: window.confirmObs || ""
         };
 
-        // 3. ENVIO PRINCIPAL
         const response = await fetch(urlSheets, {
             method: 'POST',
             mode: 'cors',
@@ -717,13 +718,11 @@ async function enviarDadosFinais() {
         const result = await response.json();
 
         if (result.success) {
-            // 4. LÓGICA DO COMENTÁRIO OPCIONAL
             if (!window.confirmObs || window.confirmObs.trim() === "") {
-                const querComentario = confirm("✅ Dados principais enviados! Deseja adicionar um comentário extra?");
+                const querComentario = confirm("✅ Dados enviados! Deseja registrar comentário?");
                 if (querComentario) {
-                    const obsExtra = prompt("Descreva sua observação para a coluna OBS:");
+                    const obsExtra = prompt("Descreva a observação:");
                     if (obsExtra !== null && obsExtra.trim() !== "") {
-                        btn.innerText = "⏳ Gravando comentário...";
                         await fetch(urlSheets, {
                             method: 'POST',
                             mode: 'cors',
@@ -738,21 +737,18 @@ async function enviarDadosFinais() {
                     }
                 }
             }
-
-            alert("✅ Lote finalizado com sucesso!");
+            alert("✅ Romaneio finalizado com sucesso!");
             location.reload(); 
-
         } else {
-            throw new Error(result.error || "Erro desconhecido");
+            throw new Error(result.error || "Erro no servidor");
         }
-
     } catch (e) {
         console.error("Erro no Envio:", e);
-        alert("❌ Erro no envio. O campo de assinatura será reexibido para tentar novamente.");
+        alert("❌ Erro no envio. Tente novamente.");
         
-        // REVERSÃO EM CASO DE ERRO (Permite tentar de novo)
-        btn.disabled = false;
-        btn.style.pointerEvents = "auto";
+        // --- REVERSÃO: Volta o botão e a assinatura se der erro ---
+        if (document.getElementById("statusTemp")) document.getElementById("statusTemp").remove();
+        btn.style.display = "block"; 
         btn.innerText = "✅ Confirmar Assinatura e Enviar";
         if (areaAssinatura) {
             areaAssinatura.style.display = "block";
@@ -836,12 +832,10 @@ async function finalizarLote() {
 
         // 5. LIBERAR PARA ASSINATURA
         btn.disabled = false;
-        btn.classList.add("w-100"); // Transforma em Block Button
+        btn.style.display = "block"; // Garante que esteja visível
+        btn.style.width = "100%";    // Transforma em Block Button manualmente
         btn.innerText = "✅ Confirmar Assinatura e Enviar";
-        
-        // Se quiser trocar a cor para destacar bem:
-        btn.classList.remove("btn-success");
-        btn.classList.add("btn-warning");
+        btn.classList.replace("btn-success", "btn-warning");
         
         areaAssinatura.style.display = "block";
         areaAssinatura.scrollIntoView({ behavior: 'smooth' });
