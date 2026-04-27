@@ -832,10 +832,16 @@ async function finalizarLote() {
             document.getElementById("reader").style.display = "none";
         }
 
+        // ... (resto do código acima igual)
+
         // 5. LIBERAR PARA ASSINATURA
         btn.disabled = false;
+        btn.classList.add("w-100"); // Transforma em Block Button
         btn.innerText = "✅ Confirmar Assinatura e Enviar";
-        btn.classList.replace("btn-success", "btn-warning");
+        
+        // Se quiser trocar a cor para destacar bem:
+        btn.classList.remove("btn-success");
+        btn.classList.add("btn-warning");
         
         areaAssinatura.style.display = "block";
         areaAssinatura.scrollIntoView({ behavior: 'smooth' });
@@ -847,6 +853,7 @@ async function finalizarLote() {
         btn.innerText = "Finalizar Lote";
     }
 }
+
 
 </script>
 
