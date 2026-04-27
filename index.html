@@ -686,10 +686,9 @@ async function enviarDadosFinais() {
     const canvasParaEnvio = document.getElementById('canvasAssinatura');
     const assinaturaBase64 = canvasParaEnvio.toDataURL("image/png");
 
-    // 2. INTERFACE: BLOQUEIA BOTÃO E MOSTRA STATUS
-    // Adiciona classe de bloco se não tiver (Bootstrap) e desabilita
-    btn.classList.add("w-100"); 
-    btn.disabled = true;
+    // 2. BLOQUEIO IMEDIATO PÓS-CLIQUE
+    btn.disabled = true; // Desativa o clique
+    btn.style.pointerEvents = "none"; // Garante bloqueio total do mouse
     btn.innerText = "⏳ Enviando dados, por favor aguarde...";
     
     if (areaAssinatura) {
@@ -724,7 +723,7 @@ async function enviarDadosFinais() {
                 if (querComentario) {
                     const obsExtra = prompt("Descreva sua observação para a coluna OBS:");
                     if (obsExtra !== null && obsExtra.trim() !== "") {
-                        btn.innerText = "⏳ Gravando comentário..."; // Mantém desabilitado
+                        btn.innerText = "⏳ Gravando comentário...";
                         await fetch(urlSheets, {
                             method: 'POST',
                             mode: 'cors',
@@ -751,8 +750,9 @@ async function enviarDadosFinais() {
         console.error("Erro no Envio:", e);
         alert("❌ Erro no envio. O campo de assinatura será reexibido para tentar novamente.");
         
-        // REEXIBE E RESTAURA O BOTÃO ORIGINAL CASO DÊ ERRO
+        // REVERSÃO EM CASO DE ERRO (Permite tentar de novo)
         btn.disabled = false;
+        btn.style.pointerEvents = "auto";
         btn.innerText = "✅ Confirmar Assinatura e Enviar";
         if (areaAssinatura) {
             areaAssinatura.style.display = "block";
